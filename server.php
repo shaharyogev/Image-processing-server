@@ -27,6 +27,8 @@ function console( $data ) {
     echo "<script>console.log( 'Debug Objects: " . $output . "' );</script>";
 }
 
+
+
 $colorsToShowNum = 5;
 $colors = array();
 
@@ -39,6 +41,8 @@ function colorsInBmp($p_sFile) {
 			$read    .=    fread($file,1024); 
 	
 	$temp    =    unpack("H*",$read); 
+		console($temp);
+
 	$hex    =    $temp[1]; 
 	$header    =    substr($hex,0,108); 
 	
@@ -147,9 +151,81 @@ function colorsInBmp($p_sFile) {
 
 
 
+function dominantColors( $img){
+	$fp = fopen($img, 'rb');
+	//console($fp);
+	$size = filesize($img);
+	$data = fread($fp, $size);
+	fclose($fp);
+	//header('Content-type: image/bpm');
+	$decode = base64_decode($data);
+	$encoded = base64_encode($data);
+	$temp = unpack("C*",$data); 
+	$hex = $temp; 
+	$header = $temp[0]; 
+	$body = $temp;
+	//$body = substr($hex,108); 
+	console($body);
+	$body_size = (array_chunk($body)); //test
+	console($body_size);
+	$x = 0; 
+	$y = 1; 
+		$check = getimagesize($_FILES["image"]["tmp_name"]);
+
+	$width = $check[0];
+	$height = $check[1];
+	console($width);
+	$header_size = ($width*$height); 
+	$usePadding = ($body_size>($header_size*3)+4); 
+	
+	for ($i=0;$i<$body_size;$i+=3) { 
+		if ($x>=$width) { 
+				if ($usePadding) 
+						$i+= $width%4; 
+
+				$x = 0; 
+				$y++; 
+				if ($y>$height) 
+					break; 
+		} 
+
+		$i_pos    =    $i; 
+		$r        =    $body[$i_pos+2]; 
+		$g        =    $body[$i_pos+1];
+		$b        =    $body[$i_pos]; 
+		$tempString = ''.$r.','.$g.','.$b.'';
+		$colors[] = $tempString;
+		//console($r);
+		$x++; 
+	} 
+	
+	//    Unset the body / free the memory 
+	unset($body); 
+	
+
+	// Count the number for each color
+	$allTheColors = array_count_values($colors);
+	
+	// Sort the array higher values first
+	arsort($allTheColors);
+	
+	//Slice the top 5 dominant colors
+	$result = array_slice($allTheColors, 0,5,true);
+
+	//Echo to the screen
+	foreach($result as $key => $val){
+		echo '<h3> Color: ' .$key. ' Showed: '.$val.'</h3>';
+	}
+
+	//console($body);
+	echo '<img src="data:image/bmp;base64,' . $encoded . '" />';
+	echo $encoded;
+}
+
 function convertImageToBmp($img, $type){
 //Will convert images to bmp
 
+//header('Content-type: image/bpm');
 	return $result;
 
 }
@@ -175,10 +251,11 @@ if(isset($_POST["submit"])) {
 			if( $check["mime"] === 'image/bmp'){
 				colorsInBmp($imageTemp);
 			} else {
-				$newImage = convertImageToBmp($imageTemp, $check["mime"]);
-				colorsInBmp($newImage);
+				
+				$newImage = dominantColors($imageTemp);
+				//colorsInBmp($newImage);
 			}
-			
+
 	} else{
 			echo "File is not an image.";
 			$uploadOk = 0;
