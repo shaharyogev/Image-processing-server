@@ -17,6 +17,8 @@
 			<input type='submit' name='submit'>
 		</form>
 
+		
+
 <?php
 
 function console( $data ) {
@@ -87,23 +89,23 @@ function colorsInBmp($p_sFile) {
 	//Using a for-loop with index-calculation instated of str_split to avoid large memory consumption 
 	//Calculate the next DWORD-position in the body 
 	for ($i=0;$i<$body_size;$i+=3) { 
-			//Calculate line-ending and padding 
-			if ($x>=$width) { 
-					//If padding needed, ignore image-padding 
-					//Shift i to the ending of the current 32-bit-block 
-					if ($usePadding) 
-							$i    +=    $width%4; 
-					
-					//Reset horizontal position 
-					$x = 0; 
-					
-					//Raise the height-position (bottom-up) 
-					$y++; 
-					
-					//Reached the image-height? Break the for-loop 
-					if ($y>$height) 
-							break; 
-			} 
+		//Calculate line-ending and padding 
+		if ($x>=$width) { 
+			//If padding needed, ignore image-padding 
+			//Shift i to the ending of the current 32-bit-block 
+			if ($usePadding) 
+				$i += $width%4; 
+			
+			//Reset horizontal position 
+			$x = 0; 
+			
+			//Raise the height-position (bottom-up) 
+			$y++; 
+			
+			//Reached the image-height? Break the for-loop 
+			if ($y>$height) 
+				break; 
+		} 
 							
 
 			//Calculation of the RGB-pixel (defined as BGR in image-data) 
@@ -126,7 +128,8 @@ function colorsInBmp($p_sFile) {
 			//    Raise the horizontal position 
 			$x++; 
 	} 
-	
+	echo '<img src="' . $p_sFile . '" />';
+
 	//    Unset the body / free the memory 
 	unset($body); 
 	
@@ -143,13 +146,14 @@ function colorsInBmp($p_sFile) {
 	//Echo to the screen
 	foreach($result as $key => $val){
 		echo '<h3> Color: ' .$key. ' Showed: '.$val.'</h3>';
+
 	}		
-	
+
 	return $result;
   } 
 
 
-
+/*
 function dominantColors( $img){
 	$fp = fopen($img, 'rb');
 	//console($fp);
@@ -219,10 +223,18 @@ function dominantColors( $img){
 	//console($body);
 	echo '<img src="data:image/bmp;base64,' . $encoded . '" />';
 	echo $encoded;
-}
+}*/
 
-function convertImageToBmp($img, $type){
-//Will convert images to bmp
+function convertImageToBmp($img){
+//Will convert images to bmp with the GD 
+
+$fp = fopen($img, 'rb');
+	//console($fp);
+	$size = filesize($img);
+	//$data = fread($fp, $size);
+
+ $result = imagebmp(imagecreatefromstring(file_get_contents($_FILES["image"]["tmp_name"])),'php.bmp');
+ console($result);
 
 //header('Content-type: image/bpm');
 	return $result;
@@ -251,7 +263,7 @@ if(isset($_POST["submit"])) {
 				colorsInBmp($imageTemp);
 			} else {
 				
-				$newImage = dominantColors($imageTemp);
+				convertImageToBmp($imageTemp);
 				//colorsInBmp($newImage);
 			}
 
@@ -264,8 +276,6 @@ if(isset($_POST["submit"])) {
 	
 ?>
 
-<
-/body>
+</body>
 
-<
-/html>
+</html>
