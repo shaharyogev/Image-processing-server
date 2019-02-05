@@ -138,11 +138,11 @@ function colorsInBmp($p_sFile) {
 	$result = array_slice($allTheColors, 0,5,true);
 
 	//Echo to the screen
+	echo '<section class="colorsSection">';
 	foreach($result as $key => $val){
-		echo '<h3 class="colorsText"> Color: ' .$key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$key.')"></div>';
-		
+		echo '<div class="flex-row"><h3 class="colorsText"> Color: ' .$key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$key.')"></div></div>';
 	}		
-
+	echo '</section>';
 	return $result;
 } 
 
