@@ -20,7 +20,7 @@
 		
 
 <?php
-
+//console log debug tool
 function console( $data ) {
     $output = $data;
     if ( is_array( $output ) )
@@ -29,13 +29,10 @@ function console( $data ) {
     echo "<script>console.log( 'Debug Objects: " . $output . "' );</script>";
 }
 
-
-
 $colorsToShowNum = 5;
 $colors = array();
 
 function colorsInBmp($p_sFile) { 
-
 	//Load the image into a string 
 	$file = fopen($p_sFile,"rb"); 
 	$read = fread($file,10); 
@@ -107,7 +104,6 @@ function colorsInBmp($p_sFile) {
 				break; 
 		} 
 							
-
 			//Calculation of the RGB-pixel (defined as BGR in image-data) 
 			//Define $i_pos as absolute position in the body 
 			$i_pos = $i*2; 
@@ -121,23 +117,22 @@ function colorsInBmp($p_sFile) {
 			// Insert the strings to array
 			$colors[] = $tempString;
 			
-			//    Calculate and draw the pixel 
-			//$color    =    imagecolorallocate($image,$r,$g,$b); // GD library cant be used
+			//Calculate and draw the pixel 
+			//$color = imagecolorallocate($image,$r,$g,$b); // GD library cant be used
 			//imagesetpixel($image,$x,$height-$y,$color); // GD library cant be used
 			
-			//    Raise the horizontal position 
+			//Raise the horizontal position 
 			$x++; 
 	} 
 	echo '<img src="' . $p_sFile . '" />';
 
-	//    Unset the body / free the memory 
+	//Unset the body / free the memory 
 	unset($body); 
 	
-
-	// Count the number for each color
+	//Count the number for each color
 	$allTheColors = array_count_values($colors);
 	
-	// Sort the array higher values first
+	//Sort the array higher values first
 	arsort($allTheColors);
 	
 	//Slice the top 5 dominant colors
@@ -146,125 +141,154 @@ function colorsInBmp($p_sFile) {
 	//Echo to the screen
 	foreach($result as $key => $val){
 		echo '<h3> Color: ' .$key. ' Showed: '.$val.'</h3>';
-
 	}		
 
 	return $result;
-  } 
+} 
 
-
-/*
-function dominantColors( $img){
-	$fp = fopen($img, 'rb');
-	//console($fp);
-	$size = filesize($img);
-	$data = fread($fp, $size);
-	fclose($fp);
-	//header('Content-type: image/bpm');
-	$decode = base64_decode($data);
-	$encoded = base64_encode($data);
-	$temp = unpack("C*",$data); 
-	$hex = $temp; 
-	$header = $temp[0]; 
-	$body = $temp;
-	//$body = substr($hex,108); 
-	console($body);
-	$body_size = (count($body)); //test
-	console($body_size);
-	$x = 0; 
-	$y = 1; 
-		$check = getimagesize($_FILES["image"]["tmp_name"]);
-
-	$width = $check[0];
-	$height = $check[1];
-	console($width);
-	$header_size = ($width*$height); 
-	$usePadding = ($body_size>($header_size*3)+4); 
-	
-	for ($i=0;$i<$body_size;$i+=3) { 
-		if ($x>=$width) { 	
-				if ($usePadding) 
-						$i+= $width%4; 
-
-				$x = 0; 
-				$y++; 
-				if ($y>$height) 
-					break; 
-		} 
-
-		$i_pos    =    $i; 
-		$r        =    $body[$i_pos+2]; 
-		$g        =    $body[$i_pos+1];
-		$b        =    $body[$i_pos]; 
-		$tempString = ''.$r.','.$g.','.$b.'';
-		$colors[] = $tempString;
-		//console($r);
-		$x++; 
-	} 
-	
-	//    Unset the body / free the memory 
-	unset($body); 
-	
-
-	// Count the number for each color
-	$allTheColors = array_count_values($colors);
-	
-	// Sort the array higher values first
-	arsort($allTheColors);
-	
-	//Slice the top 5 dominant colors
-	$result = array_slice($allTheColors, 0,5,true);
-
-	//Echo to the screen
-	foreach($result as $key => $val){
-		echo '<h3> Color: ' .$key. ' Showed: '.$val.'</h3>';
-	}
-
-	//console($body);
-	echo '<img src="data:image/bmp;base64,' . $encoded . '" />';
-	echo $encoded;
-}*/
 
 function convertImageToBmp($img){
 //Will convert images to bmp with the GD 
+ 
+	$result = imagecreatefromstring(file_get_contents($_FILES["image"]["tmp_name"]));
+	 if ($result){
+		header('Content-Type: image/bmp');
+		$read = imagebmp($result);
+		echo($read);
 
-$fp = fopen($img, 'rb');
-	//console($fp);
-	$size = filesize($img);
-	//$data = fread($fp, $size);
+		echo '<img src="' . $read. '" />';
 
- $result = imagebmp(imagecreatefromstring(file_get_contents($_FILES["image"]["tmp_name"])),'php.bmp');
- console($result);
+		$temp = unpack("H*",$read); 
+		$hex = $temp[1]; 
+		// BMP Header is the first 108 characters
+		$header = substr($hex,0,108);
+		//imagedestroy($result);
 
-//header('Content-type: image/bpm');
-	return $result;
+			
+	//Process the header 
+	//Structure: http://www.fastgraph.com/help/bmp_header_format.html 
+	
+	if (substr($header,0,4) == "424d"){  //BMP header
+		//Cut it in parts of 2 bytes 
+		$header_parts = str_split($header,2); 
+		console('test');
+		
+		//Get the width 4 bytes 
+		$width = hexdec($header_parts[19].$header_parts[18]); 
+		
+		//Get the height 4 bytes 
+		$height = hexdec($header_parts[23].$header_parts[22]); 
+		
+		//Unset the header params 
+		unset($header_parts); 
+} 
+
+//Define starting X and Y 
+$x = 0; 
+$y = 1; 
+
+// Create newimage 
+//$image = imagecreatetruecolor($width,$height); // GD library cant be used
+
+//Grab the body from the image 
+$body = substr($hex,108); 
+//Calculate if padding at the end-line is needed 
+//Divided by two to keep overview. 
+//1 byte = 2 HEX-chars 
+$body_size = (strlen($body)/2); 
+$header_size = ($width*$height); 
+
+//Use end-line padding? Only when needed 
+$usePadding = ($body_size>($header_size*3)+4); 
+
+//Using a for-loop with index-calculation instated of str_split to avoid large memory consumption 
+//Calculate the next DWORD-position in the body 
+for ($i=0;$i<$body_size;$i+=3) { 
+	//Calculate line-ending and padding 
+	if ($x>=$width) { 
+		//If padding needed, ignore image-padding 
+		//Shift i to the ending of the current 32-bit-block 
+		if ($usePadding) 
+			$i += $width%4; 
+		
+		//Reset horizontal position 
+		$x = 0; 
+		
+		//Raise the height-position (bottom-up) 
+		$y++; 
+		
+		//Reached the image-height? Break the for-loop 
+		if ($y>$height) 
+			break; 
+	} 
+						
+		//Calculation of the RGB-pixel (defined as BGR in image-data) 
+		//Define $i_pos as absolute position in the body 
+		$i_pos = $i*2; 
+		$r = hexdec($body[$i_pos+4].$body[$i_pos+5]); 
+		$g = hexdec($body[$i_pos+2].$body[$i_pos+3]); 
+		$b = hexdec($body[$i_pos].$body[$i_pos+1]); 
+		
+		// Combine the RGB to a string
+		$tempString = ''.$r.','.$g.','.$b.'';
+		
+		// Insert the strings to array
+		$colors[] = $tempString;
+		
+		//Calculate and draw the pixel 
+		//$color = imagecolorallocate($image,$r,$g,$b); // GD library cant be used
+		//imagesetpixel($image,$x,$height-$y,$color); // GD library cant be used
+		
+		//Raise the horizontal position 
+		$x++; 
+} 
+echo '<img src="' . $p_sFile . '" />';
+
+//Unset the body / free the memory 
+unset($body); 
+
+//Count the number for each color
+$allTheColors = array_count_values($colors);
+
+//Sort the array higher values first
+arsort($allTheColors);
+
+//Slice the top 5 dominant colors
+$result = array_slice($allTheColors, 0,5,true);
+
+//Echo to the screen
+foreach($result as $key => $val){
+	echo '<h3> Color: ' .$key. ' Showed: '.$val.'</h3>';
+}		
+
+	 }
+ 		echo($header);
+	//return $result;
 
 }
 
 
-$target_dir = "uploads/";
-$target_file = $target_dir . basename($_FILES["image"]["name"]);
-$uploadOk = 1;
-$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+
 
 // Check if image file is a actual image or fake image
 if(isset($_POST["submit"])) {
+	$target_dir = "uploads/";
+	$target_file = $target_dir . basename($_FILES["image"]["name"]);
+	$uploadOk = 1;
+	$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+	$imageTemp = $_FILES["image"]["tmp_name"];
+	console($imageTemp);
 
-	console($_FILES["image"]["tmp_name"]);
-
-	$check = getimagesize($_FILES["image"]["tmp_name"]);
+	$check = getimagesize($imageTemp);
 	console($check);
 	
 	if($check !== false) {
 			echo "File is an image - " . $check["mime"] . ".";
-			$imageTemp = $_FILES["image"]["tmp_name"];
 			$uploadOk = 1;
 			if( $check["mime"] === 'image/bmp'){
 				colorsInBmp($imageTemp);
 			} else {
-				
 				convertImageToBmp($imageTemp);
-				//colorsInBmp($newImage);
 			}
 
 	} else{
