@@ -6,8 +6,8 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<title>Page Title</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<!--<link rel="stylesheet" type="text/css" media="screen" href="main.css" />
-		<script src="main.js"></script>-->
+		<link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+		<!--<script src="main.js"></script>-->
 	</head>
 
 	<body>
@@ -131,7 +131,7 @@ function colorsInBmp($p_sFile) {
 	//Count the number for each color
 	$allTheColors = array_count_values($colors);
 	
-	//Sort the array higher values first
+	//Sort the array higher first
 	arsort($allTheColors);
 	
 	//Slice the top 5 dominant colors
@@ -139,29 +139,37 @@ function colorsInBmp($p_sFile) {
 
 	//Echo to the screen
 	foreach($result as $key => $val){
-		echo '<h3> Color: ' .$key. ' Showed: '.$val.'</h3>';
+		echo '<h3 class="colorsText"> Color: ' .$key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$key.')"></div>';
+		
 	}		
 
 	return $result;
 } 
 
-//Will convert images to bmp with the GD 
+//Will convert images to bmp with the GD library 
 
 function convertImageToBmp($img){
 
+	//Create new image from string generated from the file
 	$image = imagecreatefromstring(file_get_contents($img));
+
+	//Save the new temp file
 	$temp = imagebmp($image,'tempTest.bmp');
+
+	//Clear the memory
 	imageDestroy($image);
+
+	//Call the colorsInBmp and pass the new file
 	colorsInBmp('tempTest.bmp');
 }
 
 
-//Uploaded file target directory
-$target_dir = "uploads/";
-$target_file ='';
 
-// Check if image file is a actual image or fake image
+
+// Check if image file is a actual image or fake image JPEG, PNG, GIF, BMP, WBMP.
 if(isset($_POST["submit"])) {
+	//Uploaded file target directory
+	$target_dir = "uploads/";
 
 	//Will create directory if necessary
 	if(!file_exists('uploads/'))
@@ -175,7 +183,6 @@ if(isset($_POST["submit"])) {
 
 	//Use the temp file before saving
 	$imageTemp = $_FILES["image"]["tmp_name"];
-	console($imageTemp);
 	console($target_file);
 
 	//Get the size and test the image type base on the data stored in the image
@@ -183,7 +190,7 @@ if(isset($_POST["submit"])) {
 	console($check);
 	
 	if($check !== false) {
-		echo "File is an image - " . $imageFileType . ".";
+		echo "<h2>File is an image - " . $imageFileType . ".</h2>";
 		$uploadOk = 1;
 		if( $check["mime"] === 'image/bmp'){
 			colorsInBmp($imageTemp);
