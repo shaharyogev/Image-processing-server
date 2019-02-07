@@ -11,11 +11,14 @@
 	</head>
 
 	<body>
+<section class='inputSection'>
+<h1>Pleas select a image file:</h1>
 
 		<form action='server.php' method='POST' enctype='multipart/form-data'>
 			<input type='file' name='image' placeholder='Upload an image'>
 			<input type='submit' name='submit'>
 		</form>
+</section>
 
 		
 
@@ -140,7 +143,7 @@ function colorsInBmp($p_sFile) {
 	//Echo to the screen
 	echo '<section class="colorsSection">';
 	foreach($result as $key => $val){
-		echo '<div class="flex-row"><h3 class="colorsText"> Color: ' .$key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$key.')"></div></div>';
+		echo '<div class=" colorRow flex-row"><h3 class="colorsText"> Color: ' .$key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$key.')"></div></div>';
 	}		
 	echo '</section>';
 	return $result;
@@ -190,7 +193,7 @@ if(isset($_POST["submit"])) {
 	console($check);
 	
 	if($check !== false) {
-		echo "<h2>File is an image - " . $imageFileType . ".</h2>";
+		echo "<h2 class='inputSection'>File is an image - " . $imageFileType . ".</h2>";
 		$uploadOk = 1;
 		if( $check["mime"] === 'image/bmp'){
 			colorsInBmp($imageTemp);
@@ -199,7 +202,7 @@ if(isset($_POST["submit"])) {
 		}
 
 		move_uploaded_file($imageTemp, $target_file);
-		echo '<img src="' .$target_file. '" />';
+		echo '<div class="flex-row"><img class="imageCenter" src="' .$target_file. '" /></div>';
 
 	} else{
 			echo "File is not an image.";
