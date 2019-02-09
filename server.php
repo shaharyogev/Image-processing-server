@@ -11,7 +11,7 @@
 
 	<body>
 	<section class='inputSection'>
-	<h1>Pleas select a image file:</h1>
+	<h1>Please select an image file:</h1>
 		<form action='server.php' method='POST' enctype='multipart/form-data'>
 			<span>Colors to show:</span>
 			<input type='number' name='number' placeholder='5' value='5'>
