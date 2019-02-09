@@ -22,6 +22,13 @@
 		
 
 <?php
+
+// Script start
+$rustart = getrusage();
+
+
+
+
 //
 // Log message to the client's browser console by inserting JS
 function console( $data ) {
@@ -32,11 +39,13 @@ function console( $data ) {
     echo "<script>console.log( 'Debug Objects: " . $output . "' );</script>";
 }
 
-$colors = array();
 
 //
 // Parse the BMP format and get the dominant colors
 function colorsInBmp($p_sFile) { 
+	$colors = array();
+
+	
 	//Load the image into a string 
 	$file = fopen($p_sFile,"rb"); 
 	$read = fread($file,10); 
@@ -45,14 +54,16 @@ function colorsInBmp($p_sFile) {
 	while(!feof($file)&&($read<>"")) {
 		$read .= fread($file,1024); 
 	}
-
+	
+	
 	//Unpack the read string to hexadecimal string for easy manipulation and reading;
 	$temp = unpack("H*",$read); 
+	//print_r($temp);
 	$hex = $temp[1]; 
 
 	// BMP Header is the first 108 characters
 	$header = substr($hex,0,108); 
-	
+
 	
 	//Process the header 
 	//Structure: http://www.fastgraph.com/help/bmp_header_format.html 
@@ -113,23 +124,12 @@ function colorsInBmp($p_sFile) {
 		} 
 			
 		
-		
+
 			//Calculation of the RGB-pixel (defined as BGR in image-data) 
 			//Define $i_pos as absolute position in the body 
 			$i_pos = $i*2; 
-			$r = hexdec($body[$i_pos+4].$body[$i_pos+5]); 
-			$g = hexdec($body[$i_pos+2].$body[$i_pos+3]); 
-			$b = hexdec($body[$i_pos].$body[$i_pos+1]); 
-			
-			// Combine the RGB to a string
-			$temp_string = ''.$r.','.$g.','.$b.'';
-			
-			// Insert the strings to array
-			$colors[] = $temp_string;
-			
-			//Calculate and draw the pixel 
-			//$color = imagecolorallocate($image,$r,$g,$b); // GD library cant be used
-			//imagesetpixel($image,$x,$height-$y,$color); // GD library cant be used
+			$colors[] = $body[$i_pos+4].$body[$i_pos+5].$body[$i_pos+2].$body[$i_pos+3].$body[$i_pos].$body[$i_pos+1];
+
 			
 			//Raise the horizontal position 
 			$x++; 
@@ -150,7 +150,8 @@ function colorsInBmp($p_sFile) {
 	//Echo to the screen
 	echo '<section class="colorsSection">';
 	foreach($result as $key => $val){
-		echo '<div class=" colorRow flex-row"><h3 class="colorsText"> Color: ' .$key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$key.')"></div></div>';
+		$temp_key = ''.hexdec(substr($key,0,2)).','.hexdec(substr($key,2,2)).','.hexdec(substr($key,4,2)).'';
+		echo '<div class=" colorRow flex-row"><h3 class="colorsText"> Color: ' .$temp_key. ' Showed: '.$val.'</h3><div class="colorBox" style="background: rgb('.$temp_key.')"></div></div>';
 	}		
 	echo '</section>';
 	return $result;
@@ -161,12 +162,17 @@ function colorsInBmp($p_sFile) {
 function convertImageToBmp($img){
 
 	//Create new image from string generated from the file
-	$img_data = imagecreatefromstring(file_get_contents($img));
-	imagebmp($img_data,'tempTest.bmp');
-	imageDestroy($img_data);
+
+	$img_data = file_get_contents($img);
+	$im = imagecreatefromstring($img_data);
+
+	imagebmp($im,'tempTest.bmp',false);
+	imageDestroy($im);
 
 	//Call the colorsInBmp and pass the new file
-	colorsInBmp('tempTest.bmp');
+	//colorsInBmp('tempTest.bmp');
+	return('tempTest.bmp');
+	
 }
 
 
@@ -185,26 +191,25 @@ if(isset($_POST["submit"])) {
 	$target_file = $target_dir . basename($_FILES["image"]["name"]);
 
 	//Image Type for later use 
-	$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+	$image_type = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
 
 	//Use the temp file before saving
-	$imageTemp = $_FILES["image"]["tmp_name"];
-	console($target_file);
+	$image_temp = $_FILES["image"]["tmp_name"];
 
 	//Get the size and test the image type base on the data stored in the image
-	$check = getimagesize($imageTemp);
-	console($check);
+	$check = getimagesize($image_temp);
 	
 	if($check !== false) {
-		echo "<h2 class='inputSection'>File is an image - " . $imageFileType . ".</h2>";
+		echo "<h2 class='inputSection'>File is an image - " . $image_type . ".</h2>";
 		$uploadOk = 1;
 		if( $check["mime"] === 'image/bmp'){
-			colorsInBmp($imageTemp);
+			colorsInBmp($image_temp,0);
 		} else {
-			convertImageToBmp($imageTemp);
+			$target_file = convertImageToBmp($image_temp);
+			colorsInBmp($target_file);
 		}
 
-		move_uploaded_file($imageTemp, $target_file);
+		move_uploaded_file($image_temp, $target_file);
 		echo '<div class="flex-row"><img class="imageCenter" src="' .$target_file. '" /></div>';
 
 	} else{
@@ -214,6 +219,20 @@ if(isset($_POST["submit"])) {
 }
 
 	
+
+
+// Script end
+function rutime($ru, $rus, $index) {
+    return ($ru["ru_$index.tv_sec"]*1000 + intval($ru["ru_$index.tv_usec"]/1000))
+     -  ($rus["ru_$index.tv_sec"]*1000 + intval($rus["ru_$index.tv_usec"]/1000));
+}
+
+$ru = getrusage();
+echo "This process used " . rutime($ru, $rustart, "utime") .
+    " ms for its computations\n";
+echo "It spent " . rutime($ru, $rustart, "stime") .
+    " ms in system calls\n";
+
 ?>
 
 </body>
