@@ -4,7 +4,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<title>Page Title</title>
+		<title>Colors From Image</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" type="text/css" media="screen" href="main.css" />
 	</head>
@@ -12,37 +12,31 @@
 	<body>
 	<section class='inputSection'>
 	<h1>Pleas select a image file:</h1>
-
 		<form action='server.php' method='POST' enctype='multipart/form-data'>
+			<span>Colors to show:</span>
+			<input type='number' name='number' placeholder='5' value='5'>
+			<br>
 			<input type='file' name='image' placeholder='Upload an image'>
 			<input type='submit' name='submit'>
 		</form>
-</section>
+	</section>
 
-		
 
 <?php
-
-// Script start
-$rustart = getrusage();
-
-
-
-
 //
 // Log message to the client's browser console by inserting JS
-function console( $data ) {
+/*function console( $data ) {
     $output = $data;
     if ( is_array( $output ) ){
 				$output = implode( ',', $output);
 		}
     echo "<script>console.log( 'Debug Objects: " . $output . "' );</script>";
 }
-
+*/
 
 //
 // Parse the BMP format and get the dominant colors
-function colorsInBmp($p_sFile) { 
+function colorsInBmp($p_sFile, $colors_num) { 
 	$colors = array();
 
 	
@@ -67,7 +61,7 @@ function colorsInBmp($p_sFile) {
 	
 	//Process the header 
 	//Structure: http://www.fastgraph.com/help/bmp_header_format.html 
-	if (substr($header,0,4) == "424d"){  //BMP header
+	if (substr($header,0,4) === "424d"){  //BMP header
 			//Cut it in parts of 2 bytes 
 			$header_parts = str_split($header,2); 
 			
@@ -85,8 +79,6 @@ function colorsInBmp($p_sFile) {
 	$x = 0; 
 	$y = 1; 
 	
-	// Create newimage 
-	//$image = imagecreatetruecolor($width,$height); // GD library cant be used
 	
 	//Grab the body from the image 
 	$body = substr($hex,108); 
@@ -123,14 +115,11 @@ function colorsInBmp($p_sFile) {
 				break; 
 		} 
 			
-		
-
-			//Calculation of the RGB-pixel (defined as BGR in image-data) 
+			//Calculation of the RGB-pixel (defined as BGR in image-data hexadecimal string) 
 			//Define $i_pos as absolute position in the body 
 			$i_pos = $i*2; 
 			$colors[] = $body[$i_pos+4].$body[$i_pos+5].$body[$i_pos+2].$body[$i_pos+3].$body[$i_pos].$body[$i_pos+1];
 
-			
 			//Raise the horizontal position 
 			$x++; 
 	} 
@@ -143,9 +132,9 @@ function colorsInBmp($p_sFile) {
 	
 	//Sort the array higher first
 	arsort($colors_array);
-	
+
 	//Slice the top 5 dominant colors
-	$result = array_slice($colors_array, 0,5,true);
+	$result = array_slice($colors_array, 0,$colors_num,true);
 
 	//Echo to the screen
 	echo '<section class="colorsSection">';
@@ -162,76 +151,70 @@ function colorsInBmp($p_sFile) {
 function convertImageToBmp($img){
 
 	//Create new image from string generated from the file
-
 	$img_data = file_get_contents($img);
 	$im = imagecreatefromstring($img_data);
-
-	imagebmp($im,'tempTest.bmp',false);
+	unset($img_data);
+	imagebmp($im,'uploads/tempTest.bmp');
 	imageDestroy($im);
-
-	//Call the colorsInBmp and pass the new file
-	//colorsInBmp('tempTest.bmp');
-	return('tempTest.bmp');
-	
+	unset($im);
+	return('uploads/tempTest.bmp');
 }
 
-
-
+function is_image_allowed($mime) {
+	$allowed_mime = array('image/png', 'image/jpg', 'image/jpeg', 'image/bmp');
+	if(!in_array($mime, $allowed_mime)) {
+		return false;
+	}else{
+		return true;
+	}
+}
 
 // Check if image file is a actual image or fake image JPEG, PNG, GIF, BMP, WBMP.
 if(isset($_POST["submit"])) {
+
+	//300 seconds = 5 minutes
+	ini_set('max_execution_time', 300); 
+	//No memory limit
+	ini_set('memory_limit', '2048M');
+
 	//Uploaded file target directory
 	$target_dir = "uploads/";
-
-	//Will create directory if necessary
-	if(!file_exists('uploads/'))
+	if(!file_exists('uploads/')){
 		mkdir('uploads/', 0777, true);
-	
+	}
+
 	//The final name and path for the new file
+	$colors_num = $_POST["number"];
 	$target_file = $target_dir . basename($_FILES["image"]["name"]);
-
-	//Image Type for later use 
 	$image_type = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-
-	//Use the temp file before saving
 	$image_temp = $_FILES["image"]["tmp_name"];
 
 	//Get the size and test the image type base on the data stored in the image
 	$check = getimagesize($image_temp);
-	
-	if($check !== false) {
-		echo "<h2 class='inputSection'>File is an image - " . $image_type . ".</h2>";
-		$uploadOk = 1;
-		if( $check["mime"] === 'image/bmp'){
-			colorsInBmp($image_temp,0);
-		} else {
-			$target_file = convertImageToBmp($image_temp);
-			colorsInBmp($target_file);
-		}
 
-		move_uploaded_file($image_temp, $target_file);
+	if($check !== false) {
+		if(is_image_allowed($check["mime"])){
+			move_uploaded_file($image_temp, $target_file);
+			echo "<h2 class='inputSection'>File is an " . $image_type . " - image.</h2>";
+
+			if( $check["mime"] === 'image/bmp'){
+				colorsInBmp($target_file, $colors_num);
+			} else {
+				// Convert to BMP if necessary
+				$temp_file = convertImageToBmp($target_file);
+				colorsInBmp($temp_file, $colors_num);
+				unlink($temp_file);
+			}
+
 		echo '<div class="flex-row"><img class="imageCenter" src="' .$target_file. '" /></div>';
 
+	}else{
+		echo "<h2 class='inputSection'>Supported files: JPEG, JPG, PNG, BMP.</h2>";
+	}
 	} else{
-			echo "File is not an image.";
-			$uploadOk = 0;
+		echo "<h2 class='inputSection'>File is not an image.</h2>";
 	}
 }
-
-	
-
-
-// Script end
-function rutime($ru, $rus, $index) {
-    return ($ru["ru_$index.tv_sec"]*1000 + intval($ru["ru_$index.tv_usec"]/1000))
-     -  ($rus["ru_$index.tv_sec"]*1000 + intval($rus["ru_$index.tv_usec"]/1000));
-}
-
-$ru = getrusage();
-echo "This process used " . rutime($ru, $rustart, "utime") .
-    " ms for its computations\n";
-echo "It spent " . rutime($ru, $rustart, "stime") .
-    " ms in system calls\n";
 
 ?>
 
