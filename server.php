@@ -7,12 +7,11 @@
 		<title>Page Title</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" type="text/css" media="screen" href="main.css" />
-		<!--<script src="main.js"></script>-->
 	</head>
 
 	<body>
-<section class='inputSection'>
-<h1>Pleas select a image file:</h1>
+	<section class='inputSection'>
+	<h1>Pleas select a image file:</h1>
 
 		<form action='server.php' method='POST' enctype='multipart/form-data'>
 			<input type='file' name='image' placeholder='Upload an image'>
@@ -23,37 +22,40 @@
 		
 
 <?php
-//console log debug tool
+//
+// Log message to the client's browser console by inserting JS
 function console( $data ) {
     $output = $data;
-    if ( is_array( $output ) )
+    if ( is_array( $output ) ){
 				$output = implode( ',', $output);
-				 
+		}
     echo "<script>console.log( 'Debug Objects: " . $output . "' );</script>";
 }
 
-$colorsToShowNum = 5;
 $colors = array();
 
+//
+// Parse the BMP format and get the dominant colors
 function colorsInBmp($p_sFile) { 
 	//Load the image into a string 
 	$file = fopen($p_sFile,"rb"); 
 	$read = fread($file,10); 
 
 	// While the file is open concatenate the next kb and keep it until it ends
-	while(!feof($file)&&($read<>"")) 
-			$read .= fread($file,1024); 
-	
+	while(!feof($file)&&($read<>"")) {
+		$read .= fread($file,1024); 
+	}
+
 	//Unpack the read string to hexadecimal string for easy manipulation and reading;
 	$temp = unpack("H*",$read); 
 	$hex = $temp[1]; 
+
 	// BMP Header is the first 108 characters
 	$header = substr($hex,0,108); 
 	
 	
 	//Process the header 
 	//Structure: http://www.fastgraph.com/help/bmp_header_format.html 
-	
 	if (substr($header,0,4) == "424d"){  //BMP header
 			//Cut it in parts of 2 bytes 
 			$header_parts = str_split($header,2); 
@@ -77,6 +79,7 @@ function colorsInBmp($p_sFile) {
 	
 	//Grab the body from the image 
 	$body = substr($hex,108); 
+
 	//Calculate if padding at the end-line is needed 
 	//Divided by two to keep overview. 
 	//1 byte = 2 HEX-chars 
@@ -84,18 +87,20 @@ function colorsInBmp($p_sFile) {
 	$header_size = ($width*$height); 
 
 	//Use end-line padding? Only when needed 
-	$usePadding = ($body_size>($header_size*3)+4); 
+	$use_padding = ($body_size>($header_size*3)+4); 
 	
 	//Using a for-loop with index-calculation instated of str_split to avoid large memory consumption 
 	//Calculate the next DWORD-position in the body 
 	for ($i=0;$i<$body_size;$i+=3) { 
 		//Calculate line-ending and padding 
+
 		if ($x>=$width) { 
 			//If padding needed, ignore image-padding 
 			//Shift i to the ending of the current 32-bit-block 
-			if ($usePadding) 
+			if ($use_padding){
 				$i += $width%4; 
-			
+			}
+
 			//Reset horizontal position 
 			$x = 0; 
 			
@@ -106,7 +111,9 @@ function colorsInBmp($p_sFile) {
 			if ($y>$height) 
 				break; 
 		} 
-							
+			
+		
+		
 			//Calculation of the RGB-pixel (defined as BGR in image-data) 
 			//Define $i_pos as absolute position in the body 
 			$i_pos = $i*2; 
@@ -115,10 +122,10 @@ function colorsInBmp($p_sFile) {
 			$b = hexdec($body[$i_pos].$body[$i_pos+1]); 
 			
 			// Combine the RGB to a string
-			$tempString = ''.$r.','.$g.','.$b.'';
+			$temp_string = ''.$r.','.$g.','.$b.'';
 			
 			// Insert the strings to array
-			$colors[] = $tempString;
+			$colors[] = $temp_string;
 			
 			//Calculate and draw the pixel 
 			//$color = imagecolorallocate($image,$r,$g,$b); // GD library cant be used
@@ -132,13 +139,13 @@ function colorsInBmp($p_sFile) {
 	unset($body); 
 	
 	//Count the number for each color
-	$allTheColors = array_count_values($colors);
+	$colors_array = array_count_values($colors);
 	
 	//Sort the array higher first
-	arsort($allTheColors);
+	arsort($colors_array);
 	
 	//Slice the top 5 dominant colors
-	$result = array_slice($allTheColors, 0,5,true);
+	$result = array_slice($colors_array, 0,5,true);
 
 	//Echo to the screen
 	echo '<section class="colorsSection">';
@@ -154,13 +161,9 @@ function colorsInBmp($p_sFile) {
 function convertImageToBmp($img){
 
 	//Create new image from string generated from the file
-	$image = imagecreatefromstring(file_get_contents($img));
-
-	//Save the new temp file
-	$temp = imagebmp($image,'tempTest.bmp');
-
-	//Clear the memory
-	imageDestroy($image);
+	$img_data = imagecreatefromstring(file_get_contents($img));
+	imagebmp($img_data,'tempTest.bmp');
+	imageDestroy($img_data);
 
 	//Call the colorsInBmp and pass the new file
 	colorsInBmp('tempTest.bmp');
